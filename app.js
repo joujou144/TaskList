@@ -1,7 +1,7 @@
 // Define UI Vars
 const form = document.querySelector('#task-form');
 const taskList = document.querySelector('.collection');
-const clearBtn = document.querySelector('.clear-tasks');
+const clearBtn = document.querySelector('.clear-all-tasks');
 const filter = document.querySelector('#filter');
 const taskInput = document.querySelector('#task');
 
@@ -10,16 +10,42 @@ loadEventListeners();
 
 // Load all event listeners
 function loadEventListeners() {
+  // DOM load event so it stays there even after refresh 
+  document.addEventListener('DOMContentLoaded', getTasks);
   // Add task event
   form.addEventListener('submit', addTask);
   // Remove task event
-  taskList.addEventListener('click', removeTask);
+  taskList.addEventListener('click', removeEachTask);
   // Clear task event
-  clearBtn.addEventListener('click', clearTasks);
+  clearBtn.addEventListener('click', clearAllTasks);
   // Filter tasks event
   filter.addEventListener('keyup', filterTasks);
 }
 
+// Get Tasks from LocalStorage
+function getTasks() {
+  let tasks = JSON.parse(localStorage.tasks || '[]');
+  
+  tasks.forEach(function(task){
+    // Create li element
+    const li = document.createElement('li');
+    // Add class
+    li.className = 'collection-item';
+    // Create text node and append to li
+    li.appendChild(document.createTextNode(task));
+    // Create new link element
+    const link = document.createElement('a');
+    // Add class
+    link.className = 'delete-item secondary-content';
+    // Add icon html
+    link.innerHTML = '<i class="fa fa-remove"></i>';
+    // Append the link to li
+    li.appendChild(link);
+
+    // Append li to ul
+    taskList.appendChild(li);
+  });
+}
 
 // Add Task
 function addTask(e) {
@@ -45,25 +71,49 @@ function addTask(e) {
   // Append li to ul
   taskList.appendChild(li);
 
-   // Clear input
+  // Store task data in LocalStorage
+  storeTaskInLocalStorage(taskInput.value);
+
+  // Clear input
   taskInput.value = '';
 
   e.preventDefault();
 }
 
-// Remove Task
-function removeTask(e) {
-  if(e.target.parentElement.classList.contains('delete-item')) {
-    if(confirm('Are You Sure?')) {
+// Store Task in LocalStorage
+function storeTaskInLocalStorage(task) {
+  let tasks = JSON.parse(localStorage.tasks || '[]');
+  
+  tasks.push(task);
+
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+
+// Remove Each Task 
+function removeEachTask(e) {
+  if(e.target.parentElement.classList.contains("delete-item")) {
+    if(confirm("Are You Sure?")) {
       e.target.parentElement.parentElement.remove();
 
+      // remove from LocalStorage
+      removeEachTaskFromLocalStorage(e.target.parentElement.parentElement);
     }
   }
 }
 
+// Remove from LocalStorage
+function removeEachTaskFromLocalStorage(taskItem) {
+  let tasks = JSON.parse(localStorage.tasks || '[]');
+  let removed = tasks.splice(tasks.indexOf(taskItem.textContent), 1);
+
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+
 // Clear Tasks
-function clearTasks() {
-  // taskList.innerHTML = '';
+function clearAllTasks() {
+  //  taskList.innerHTML = '';
 
   // Faster
   while(taskList.firstChild) {
@@ -71,11 +121,27 @@ function clearTasks() {
   }
 
   // https://jsperf.com/innerhtml-vs-removechild
+
+  // Clear Tasks from LocalStorage
+clearTasksFromLocalStorage();
 }
 
-// Filter tasks
-function filterTasks(e) {
-  const text = e.target.value;
+// Clear Tasks from LS
+function clearTasksFromLocalStorage() {
+  localStorage.clear();
+}
 
-  console.log(text);
+
+// Filter Tasks
+function filterTasks(e) {
+  const text = e.target.value.toLowerCase();
+
+  document.querySelectorAll('.collection-item').forEach(function(task){
+    const item = task.firstChild.textContent;
+    if(item.toLowerCase().indexOf(text) != -1){
+      task.style.display = 'block';
+    } else {
+      task.style.display = 'none';
+    }
+  });
 }
